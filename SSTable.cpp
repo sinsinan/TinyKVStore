@@ -5,7 +5,6 @@
 #include <iterator>
 #include <list>
 #include <vector>
-#include <json.hpp>
 #include <iostream>
 #include <fstream>
 
@@ -14,14 +13,23 @@ SSTable::SSTable(std::string sSTableFilePath)
     this->filePath = sSTableFilePath;
     this->openReadAndWriteStreams();
     this->initFromFile();
+    printf("sparseIndex.size(): %s\n", sparseIndex.size());
 }
 
 SSTable::SSTable(std::string sSTableFilePath, long partSize, std::map<std::string, std::shared_ptr<Command>> data)
 {
-    this->filePath = sSTableFilePath;
-    this->tableMetaInfo.setPartSize(partSize);
-    this->openReadAndWriteStreams();
-    this->initFromData(data);
+    try
+    {
+        this->filePath = sSTableFilePath;
+        this->tableMetaInfo.setPartSize(partSize);
+        this->openReadAndWriteStreams();
+        this->initFromData(data);
+        printf("sparseIndex.size(): %s\n", sparseIndex.size());
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << e.what() << '\n';
+    }
 }
 
 SSTable::~SSTable()
@@ -29,47 +37,18 @@ SSTable::~SSTable()
     printf("SSTable destructor called\n");
     this->sSTableReadStream.close();
     this->sSTableWriteStream.close();
-    // this->sSTableFileStream.close();
 }
 
 void SSTable::initFromFile()
 {
-    // this->tableMetaInfo.readFromFile(this->sSTableFileStream);
-    // printf("(long long)(this->sSTableFileStreamBottom) + this->tableMetaInfo.getIndexStart() : %d\n", (long long)(this->sSTableFileStreamBottom) + this->tableMetaInfo.getIndexStart());
-    // this->sSTableFileStream.seekg(0, std::ios::end);
-    // this->sSTableFileStream.seekg((long long)(this->sSTableFileStream.tellg()) - (4 * 6) - this->tableMetaInfo.getIndexLength());
-    // this->sSTableFileStream.read((char *)&this->sparseIndex, this->tableMetaInfo.getIndexLength());
-    // printf("this->sparseIndex: %d\n", this->sparseIndex.size());
-    // for (auto itr = this->sparseIndex.begin(); itr != this->sparseIndex.end(); ++itr)
-    // {
-    //     printf("key: %s\n", itr->first);
-    // }
-
     this->tableMetaInfo.readFromFile(this->sSTableReadStream);
     this->sSTableReadStream.seekg(0, std::ios::end);
     this->sSTableReadStream.seekg((long long)(this->sSTableReadStream.tellg()) - (4 * 6) - this->tableMetaInfo.getIndexLength());
-    std::vector<char> vec(this->tableMetaInfo.getIndexLength());
-    this->sSTableReadStream.read(reinterpret_cast<char *>(vec.data()), this->tableMetaInfo.getIndexLength());
-
-    auto sparseIndexString = std::string(vec.begin(), vec.end()).c_str();
-
-    printf("sparseIndexString: %s\n", sparseIndexString);
-    // printf("this->sparseIndex: %d\n", this->sparseIndex.size());
-    // for (auto itr = this->sparseIndex.begin(); itr != this->sparseIndex.end(); ++itr)
-    // {
-    //     printf("key: %s\n", itr->first);
-    // }
+    this->sSTableReadStream.read((char *)&sparseIndex, this->tableMetaInfo.getIndexLength());
 }
 
 void SSTable::openReadAndWriteStreams()
 {
-    // this->sSTableFileStream.open(this->filePath, std::ios::binary | std::ios::out | std::ios::in | std::ios::app);
-    // if (!this->sSTableFileStream)
-    // {
-    //     printf("\n!this->sSTableFileStream failed\n");
-    //     throw "this->sSTableFileStream failed";
-    // }
-    // printf("\nopened sSTableFileStream\n");
 
     this->sSTableWriteStream.open(this->filePath, std::ios::binary | std::ios::out | std::ios::app);
     if (!this->sSTableWriteStream)
@@ -78,11 +57,6 @@ void SSTable::openReadAndWriteStreams()
         throw "this->sSTableWriteStream failed";
     }
     printf("\nopened sSTableWriteStream\n");
-    // sSTableFileStream.seekg(0, std::ios::beg);
-    // this->sSTableFileStreamBottom = sSTableFileStream.tellg();
-    // sSTableFileStream.seekg(0, std::ios::end);
-    // this->sSTableFileStreamTop = sSTableFileStream.tellg();
-    // this->fileBaseOffset = this->sSTableFileStreamTop - this->sSTableFileStreamBottom;
     this->sSTableReadStream.open(this->filePath, std::ios::binary | std::ios::app);
     if (!this->sSTableReadStream)
     {
@@ -96,84 +70,107 @@ void SSTable::initFromData(std::map<std::string, std::shared_ptr<Command>> data)
 {
     printf("Loading table from index\n");
     printf("total data -> %d\n", data.size());
-    printf("find sinan1 :%s\n", data.find("sinan1")->second->getKey());
-    for (auto itr = data.begin(); itr != data.end(); ++itr)
-    {
-        printf("iterating keys...\n");
-        printf("key: %s\n", itr->first.c_str());
-    }
-    // this->tableMetaInfo.setDataStart(this->sSTableFileStream.tellp() - this->sSTableFileStreamBottom);
     this->tableMetaInfo.setDataStart(this->sSTableWriteStream.tellp());
     long currentPartSize = 0;
     std::map<std::string, std::map<std::string, std::string>> partDataMap;
-    // std::list<std::shared_ptr<Command>> partDataList;
     for (auto itr = data.begin(); itr != data.end(); ++itr)
     {
         printf("iterating data...\n");
-        printf("key: %s, value: %s\n", itr->first, (*itr->second).getMapOfCommand());
-        partDataMap.insert(std::make_pair(itr->first, (*itr->second).getMapOfCommand()));
-        nlohmann::json partDataMapFirst(partDataMap.begin()->first);
-        printf("partDataMapFirst: %s\n", partDataMap.begin()->first);
-        // partDataList.push_back(itr->second);
+        printf("key: %s\n", (itr->first).c_str());
         currentPartSize++;
         if (currentPartSize >= this->tableMetaInfo.getPartSize())
         {
-            nlohmann::json partDataListJson(partDataMap);
-            auto partDataListJsonStr = partDataListJson.dump().c_str();
-            printf("partDataListJsonStr: %s\n", partDataListJsonStr);
-            printf("strlen(partDataListJsonStr): %d\n", strlen(partDataListJsonStr));
-            this->sparseIndex.insert(std::make_pair(partDataMap.begin()->first.c_str(), std::make_pair(this->sSTableWriteStream.tellp(), strlen(partDataListJsonStr))));
-            this->sSTableWriteStream.write(partDataListJsonStr, strlen(partDataListJsonStr));
-
-            // this->sparseIndex.insert(std::make_pair(partDataList.front()->getKey(), std::make_pair(this->sSTableFileStream.tellp() - this->sSTableFileStreamBottom, sizeof(partDataList))));
-            // this->sSTableFileStream.write((char *)&partDataList, sizeof(partDataList));
+            // writePartData(partDataMap);
+            this->sparseIndex.emplace(partDataMap.begin()->first, IndexPosition(((long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart()), sizeof(partDataMap)));
+            // this->sparseIndex.insert(std::make_pair(partDataMap.begin()->first, std::make_pair(((long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart()), sizeof(partDataMap))));
+            printf("partDataMap.begin()->first : %s\n", partDataMap.begin()->first.c_str());
+            printf("((long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart()) : %d\n", ((long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart()));
+            printf("((long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart()) : %d\n", ((long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart()));
+            printf("sizeof(partDataMap) : %d\n", sizeof(partDataMap));
+            printf("sparseIndexLast key: %s, offset: %d, length: %d\n", sparseIndex.end()->first.c_str(), sparseIndex.end()->second.getOffset(), sparseIndex.end()->second.getLength());
+            this->sSTableWriteStream.write((char *)&partDataMap, sizeof(partDataMap));
 
             currentPartSize = 0;
             partDataMap.clear();
-            // partDataList.clear();
+        }
+    }
+    if (currentPartSize > 0)
+    {
+
+        // writePartData(partDataMap);
+        this->sparseIndex.emplace(partDataMap.begin()->first, IndexPosition(((long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart()), sizeof(partDataMap)));
+        // this->sparseIndex.insert(std::make_pair(partDataMap.begin()->first, std::make_pair(((long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart()), sizeof(partDataMap))));
+        printf("sparseIndexLast key: %s, offset: %d, length: %d\n", sparseIndex.end()->first.c_str(), sparseIndex.end()->second.getOffset(), sparseIndex.end()->second.getLength());
+        this->sSTableWriteStream.write((char *)&partDataMap, sizeof(partDataMap));
+    }
+
+    this->tableMetaInfo.setDataLength((long long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart());
+
+    this->tableMetaInfo.setIndexStart((long long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart());
+
+    this->sSTableWriteStream.write((char *)&sparseIndex, sizeof(sparseIndex));
+    this->tableMetaInfo.setIndexLength(sizeof(sparseIndex));
+    this->tableMetaInfo.writeToFile(this->sSTableWriteStream);
+}
+
+void SSTable::writePartData(std::map<std::string, std::map<std::string, std::string>> partData)
+{
+    // this->sparseIndex.insert(std::make_pair(partData.begin()->first, std::make_pair((long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart(), sizeof(partData))));
+    // this->sSTableWriteStream.write((char *)&partData, sizeof(partData));
+}
+
+std::string SSTable::query(std::string key)
+{
+    printf("Starting to query key:%s\n", key.c_str());
+    std::list<IndexPosition *> sparseKeyPositionList;
+    IndexPosition *firstKeyPosition = NULL;
+    IndexPosition *lastKeyPosition = NULL;
+    for (auto itr = sparseIndex.begin(); itr != sparseIndex.end(); ++itr)
+    {
+        printf("searchkey: %s, itrkey: %s, cmp: %d\n", key.c_str(), itr->first.c_str(), itr->first.compare(key));
+        if (itr->first.compare(key) <= 0)
+        {
+            firstKeyPosition = &itr->second;
+        }
+        else
+        {
+            lastKeyPosition = &itr->second;
+            break;
         }
     }
 
-    printf("currentPartSize: %d\n", currentPartSize);
-    printf("partDataMapsize: %d\n", partDataMap.size());
-    if (currentPartSize > 0)
+    if (firstKeyPosition != NULL)
     {
-        nlohmann::json partDataListJson(partDataMap);
-        auto partDataListJsonStr = partDataListJson.dump().c_str();
-        printf("partDataListJsonStr: %s\n", partDataListJsonStr);
-        printf("strlen(partDataListJsonStr): %d\n", strlen(partDataListJsonStr));
-        this->sparseIndex.insert(std::make_pair(partDataMap.begin()->first.c_str(), std::make_pair(this->sSTableWriteStream.tellp(), strlen(partDataListJsonStr))));
-        this->sSTableWriteStream.write(partDataListJsonStr, strlen(partDataListJsonStr));
-
-        // this->sparseIndex.insert(std::make_pair(partDataList.front()->getKey(), std::make_pair(this->sSTableFileStream.tellp() - this->sSTableFileStreamBottom, sizeof(partDataList))));
-        // this->sSTableFileStream.write((char *)&partDataList, sizeof(partDataList));
-
-        currentPartSize = 0;
-        partDataMap.clear();
-        // partDataList.clear();
+        std::map<std::string, std::map<std::string, std::string>> dataMap;
+        this->sSTableReadStream.seekg(this->tableMetaInfo.getDataStart() + firstKeyPosition->getOffset());
+        this->sSTableReadStream.read((char *)&dataMap, firstKeyPosition->getLength());
+        auto dataMapPair = dataMap.find(key);
+        if (dataMapPair != dataMap.end())
+        {
+            return findFromCommandMap(dataMapPair->second);
+        }
     }
 
-    // this->tableMetaInfo.setDataLength((long)this->sSTableFileStream.tellp() - this->sSTableFileStreamBottom);
-    this->tableMetaInfo.setDataLength((long long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart());
-
-    // this->tableMetaInfo.setIndexStart(this->sSTableFileStream.tellp() - this->sSTableFileStreamBottom);
-    this->tableMetaInfo.setIndexStart((long long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart());
-
-    printf("this->sparseIndex: %d\n", this->sparseIndex.size());
-    for (auto itr = this->sparseIndex.begin(); itr != this->sparseIndex.end(); ++itr)
+        if (lastKeyPosition != NULL)
     {
-        printf("key: %s\n", itr->first.c_str());
+        std::map<std::string, std::map<std::string, std::string>> dataMap;
+        this->sSTableReadStream.seekg(this->tableMetaInfo.getDataStart() + lastKeyPosition->getOffset());
+        this->sSTableReadStream.read((char *)&dataMap, lastKeyPosition->getLength());
+        auto dataMapPair = dataMap.find(key);
+        if (dataMapPair != dataMap.end())
+        {
+            return findFromCommandMap(dataMapPair->second);
+        }
     }
 
-    nlohmann::json sparseIndexajson(sparseIndex);
-    auto sparseIndexCharArray = sparseIndexajson.dump().c_str();
-    printf("sparseIndexCharArray: %s\n", sparseIndexCharArray);
-    printf("strlen(sparseIndexCharArray): %d\n", strlen(sparseIndexCharArray));
-    this->sSTableWriteStream.write(sparseIndexCharArray, strlen(sparseIndexCharArray));
-    this->tableMetaInfo.setIndexLength(strlen(sparseIndexCharArray));
-    // this->sSTableFileStream.write((char *)&this->sparseIndex, sizeof(sparseIndex));
-    // this->tableMetaInfo.setIndexLength(sizeof(this->sparseIndex));
+    return NULL;
+}
 
-    // this->tableMetaInfo.writeToFile(this->sSTableFileStream);
-    this->tableMetaInfo.writeToFile(this->sSTableWriteStream);
+std::string SSTable::findFromCommandMap(std::map<std::string, std::string> commandMap)
+{
+    if (commandMap.find("value") != commandMap.end())
+    {
+        return commandMap.find("value")->second;
+    }
+    return NULL;
 }

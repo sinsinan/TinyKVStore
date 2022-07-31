@@ -8,17 +8,14 @@
 #include <TableMetaInfo.h>
 #include <Command.h>
 #include <memory>
+#include<Position.h>
 
 class SSTable
 {
 private:
-    // std::streampos sSTableFileStreamBottom;
-    // std::streampos sSTableFileStreamTop;
-    // long long fileBaseOffset;
-    // std::fstream sSTableFileStream;
     std::ofstream sSTableWriteStream;
     std::ifstream sSTableReadStream;
-    std::map<std::string, std::pair<long, long>> sparseIndex; //{key: [position, length]}
+    std::map<std::string, IndexPosition> sparseIndex; //{key: [position, length]}
     std::string filePath;
     TableMetaInfo tableMetaInfo;
 
@@ -26,11 +23,14 @@ private:
     void readDataFromFile();
     void openReadAndWriteStreams();
     void initFromData(std::map<std::string, std::shared_ptr<Command>> data);
+    void writePartData(std::map<std::string, std::map<std::string, std::string>> partData);
+    std::string findFromCommandMap(std::map<std::string, std::string> commandMap);
 public:
     SSTable(){};
     SSTable(std::string sSTableFilePath);
     SSTable(std::string sSTableFilePath, long partSize, std::map<std::string, std::shared_ptr<Command>> data);
     ~SSTable();
+    std::string query(std::string key);
 };
 
 #endif

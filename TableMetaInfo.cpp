@@ -1,6 +1,5 @@
 #include <fstream>
 #include <TableMetaInfo.h>
-#include <FileUtils.h>
 
 void TableMetaInfo::readFromFile(std::ifstream &file)
 {
