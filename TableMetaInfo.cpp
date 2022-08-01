@@ -6,7 +6,7 @@ void TableMetaInfo::readFromFile(std::ifstream &file)
     // char *buffer = new char[4];
     file.seekg(0, std::ios::end );
 
-    printf("TableMetaInfo::readFromFile file length: %d\n", file.tellg());
+    // printf("TableMetaInfo::readFromFile file length: %ld\n", file.tellg());
 
     file.seekg((long long)file.tellg() - (4 * 6));
 

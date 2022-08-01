@@ -4,7 +4,7 @@
 #include <memory>
 
 int main() {
-    std::map<std::string, std::shared_ptr<Command>> data;
+    std::map<std::string, std::shared_ptr<Command> > data;
     
     data.insert(std::make_pair(std::string("sinan1") , std::make_shared<SetCommand>(SetCommand("sinan1", "ahamed1"))));
     data.insert(std::make_pair(std::string("sinan5"), std::make_shared<SetCommand>(SetCommand("sinan5", "ahamed5"))));
@@ -13,14 +13,12 @@ int main() {
     data.insert(std::make_pair(std::string("sinan2"), std::make_shared<SetCommand>(SetCommand("sinan2", "ahamed2"))));
     // data.insert(dataPair);
 
-    std::string tableFilePath = "C:\\Users\\ahamm\\sandbox\\tiny-kv-store\\datastore\\test.table";
+    std::string tableFilePath = "./test.table";
     long partSize = 1;
     SSTable sstable(tableFilePath, partSize, data);
-    printf("sstableFromFile.query(sinan3): %s\n", sstable.query("sinan3"));
-    sstable.~SSTable();
+    printf("sstableFromFile.query(sinan3): %s\n", sstable.query("sinan3").c_str());
 
     SSTable sstableFromFile(tableFilePath);
-    printf("sstableFromFile.query(sinan3): %s\n", sstableFromFile.query("sinan3"));
-    sstableFromFile.~SSTable();
+    printf("sstableFromFile.query(sinan3): %s\n", sstableFromFile.query("sinan3").c_str());
     return 0;
 }

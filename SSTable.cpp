@@ -17,7 +17,7 @@ SSTable::SSTable(std::string sSTableFilePath)
     printf("sparseIndex.size(): %s\n", sparseIndex.size());
 }
 
-SSTable::SSTable(std::string sSTableFilePath, long partSize, std::map<std::string, std::shared_ptr<Command>> data)
+SSTable::SSTable(std::string sSTableFilePath, long partSize, std::map<std::string, std::shared_ptr<Command> > data)
 {
     try
     {
@@ -67,13 +67,13 @@ void SSTable::openReadAndWriteStreams()
     printf("\nopened SSTableReadStream\n");
 }
 
-void SSTable::initFromData(std::map<std::string, std::shared_ptr<Command>> data)
+void SSTable::initFromData(std::map<std::string, std::shared_ptr<Command> > data)
 {
     printf("Loading table from index\n");
     printf("total data -> %d\n", data.size());
     this->tableMetaInfo.setDataStart(this->sSTableWriteStream.tellp());
     long currentPartSize = 0;
-    std::list<std::map<std::string, std::string>> partDataMap;
+    std::list<std::map<std::string, std::string> > partDataMap;
     for (auto itr = data.begin(); itr != data.end(); ++itr)
     {
         printf("iterating data...\n");
@@ -120,7 +120,7 @@ void SSTable::initFromData(std::map<std::string, std::shared_ptr<Command>> data)
     this->tableMetaInfo.writeToFile(this->sSTableWriteStream);
 }
 
-void SSTable::writePartData(std::map<std::string, std::map<std::string, std::string>> partData)
+void SSTable::writePartData(std::map<std::string, std::map<std::string, std::string> > partData)
 {
     // this->sparseIndex.insert(std::make_pair(partData.begin()->first, std::make_pair((long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart(), sizeof(partData))));
     // this->sSTableWriteStream.write((char *)&partData, sizeof(partData));
@@ -129,8 +129,8 @@ void SSTable::writePartData(std::map<std::string, std::map<std::string, std::str
 std::string SSTable::query(std::string key)
 {
     printf("Starting to query key:%s\n", key.c_str());
-    std::shared_ptr<IndexPosition> firstKeyPosition = NULL;
-    std::shared_ptr<IndexPosition> lastKeyPosition = NULL;
+    std::shared_ptr<IndexPosition> firstKeyPosition;
+    std::shared_ptr<IndexPosition> lastKeyPosition;
     for (auto itr = sparseIndex.begin(); itr != sparseIndex.end(); ++itr)
     {
         printf("searchkey: %s, itrkey: %s, cmp: %d\n", key.c_str(), itr->first.c_str(), itr->first.compare(key));
@@ -147,7 +147,7 @@ std::string SSTable::query(std::string key)
 
     if (firstKeyPosition != NULL)
     {
-        std::map<std::string, std::map<std::string, std::string>> dataMap;
+        std::map<std::string, std::map<std::string, std::string> > dataMap;
         this->sSTableReadStream.seekg(this->tableMetaInfo.getDataStart() + firstKeyPosition->getOffset());
         this->sSTableReadStream.read((char *)&dataMap, firstKeyPosition->getLength());
         auto dataMapPair = dataMap.find(key);
@@ -159,7 +159,7 @@ std::string SSTable::query(std::string key)
 
         if (lastKeyPosition != NULL)
     {
-        std::map<std::string, std::map<std::string, std::string>> dataMap;
+        std::map<std::string, std::map<std::string, std::string> > dataMap;
         this->sSTableReadStream.seekg(this->tableMetaInfo.getDataStart() + lastKeyPosition->getOffset());
         this->sSTableReadStream.read((char *)&dataMap, lastKeyPosition->getLength());
         auto dataMapPair = dataMap.find(key);
