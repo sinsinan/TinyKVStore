@@ -15,7 +15,7 @@ class SSTable
 private:
     std::ofstream sSTableWriteStream;
     std::ifstream sSTableReadStream;
-    std::map<std::string, IndexPosition> sparseIndex; //{key: [position, length]}
+    std::map<std::string, std::shared_ptr<IndexPosition>> sparseIndex; //{key: [offset, length]}
     std::string filePath;
     TableMetaInfo tableMetaInfo;
 

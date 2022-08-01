@@ -7,6 +7,7 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <map>
 
 SSTable::SSTable(std::string sSTableFilePath)
 {
@@ -72,22 +73,22 @@ void SSTable::initFromData(std::map<std::string, std::shared_ptr<Command>> data)
     printf("total data -> %d\n", data.size());
     this->tableMetaInfo.setDataStart(this->sSTableWriteStream.tellp());
     long currentPartSize = 0;
-    std::map<std::string, std::map<std::string, std::string>> partDataMap;
+    std::list<std::map<std::string, std::string>> partDataMap;
     for (auto itr = data.begin(); itr != data.end(); ++itr)
     {
         printf("iterating data...\n");
         printf("key: %s\n", (itr->first).c_str());
+        partDataMap.push_back((*itr->second).getMapOfCommand());
         currentPartSize++;
         if (currentPartSize >= this->tableMetaInfo.getPartSize())
         {
-            // writePartData(partDataMap);
-            this->sparseIndex.emplace(partDataMap.begin()->first, IndexPosition(((long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart()), sizeof(partDataMap)));
+                this->sparseIndex[partDataMap.begin()->find("key")->second] = std::make_shared<IndexPosition>(IndexPosition( (long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart(), sizeof(partDataMap)));
             // this->sparseIndex.insert(std::make_pair(partDataMap.begin()->first, std::make_pair(((long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart()), sizeof(partDataMap))));
-            printf("partDataMap.begin()->first : %s\n", partDataMap.begin()->first.c_str());
+            printf("partDataMap.begin()->first : %s\n", partDataMap.begin()->find("key")->second.c_str());
             printf("((long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart()) : %d\n", ((long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart()));
             printf("((long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart()) : %d\n", ((long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart()));
             printf("sizeof(partDataMap) : %d\n", sizeof(partDataMap));
-            printf("sparseIndexLast key: %s, offset: %d, length: %d\n", sparseIndex.end()->first.c_str(), sparseIndex.end()->second.getOffset(), sparseIndex.end()->second.getLength());
+            printf("sparseIndexLast key: %s, offset: %d, length: %d\n", sparseIndex.end()->first.c_str(), (*sparseIndex.end()->second).getOffset(), (*sparseIndex.end()->second).getLength());
             this->sSTableWriteStream.write((char *)&partDataMap, sizeof(partDataMap));
 
             currentPartSize = 0;
@@ -97,11 +98,17 @@ void SSTable::initFromData(std::map<std::string, std::shared_ptr<Command>> data)
     if (currentPartSize > 0)
     {
 
-        // writePartData(partDataMap);
-        this->sparseIndex.emplace(partDataMap.begin()->first, IndexPosition(((long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart()), sizeof(partDataMap)));
-        // this->sparseIndex.insert(std::make_pair(partDataMap.begin()->first, std::make_pair(((long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart()), sizeof(partDataMap))));
-        printf("sparseIndexLast key: %s, offset: %d, length: %d\n", sparseIndex.end()->first.c_str(), sparseIndex.end()->second.getOffset(), sparseIndex.end()->second.getLength());
-        this->sSTableWriteStream.write((char *)&partDataMap, sizeof(partDataMap));
+            this->sparseIndex[partDataMap.begin()->find("key")->second] = std::make_shared<IndexPosition>(IndexPosition( (long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart(), sizeof(partDataMap)));
+            // this->sparseIndex.insert(std::make_pair(partDataMap.begin()->first, std::make_pair(((long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart()), sizeof(partDataMap))));
+            printf("partDataMap.begin()->first : %s\n", partDataMap.begin()->find("key")->second.c_str());
+            printf("((long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart()) : %d\n", ((long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart()));
+            printf("((long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart()) : %d\n", ((long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart()));
+            printf("sizeof(partDataMap) : %d\n", sizeof(partDataMap));
+            printf("sparseIndexLast key: %s, offset: %d, length: %d\n", sparseIndex.end()->first.c_str(), (*sparseIndex.end()->second).getOffset(), (*sparseIndex.end()->second).getLength());
+            this->sSTableWriteStream.write((char *)&partDataMap, sizeof(partDataMap));
+
+            currentPartSize = 0;
+            partDataMap.clear();
     }
 
     this->tableMetaInfo.setDataLength((long long)this->sSTableWriteStream.tellp() - this->tableMetaInfo.getDataStart());
@@ -122,19 +129,18 @@ void SSTable::writePartData(std::map<std::string, std::map<std::string, std::str
 std::string SSTable::query(std::string key)
 {
     printf("Starting to query key:%s\n", key.c_str());
-    std::list<IndexPosition *> sparseKeyPositionList;
-    IndexPosition *firstKeyPosition = NULL;
-    IndexPosition *lastKeyPosition = NULL;
+    std::shared_ptr<IndexPosition> firstKeyPosition = NULL;
+    std::shared_ptr<IndexPosition> lastKeyPosition = NULL;
     for (auto itr = sparseIndex.begin(); itr != sparseIndex.end(); ++itr)
     {
         printf("searchkey: %s, itrkey: %s, cmp: %d\n", key.c_str(), itr->first.c_str(), itr->first.compare(key));
         if (itr->first.compare(key) <= 0)
         {
-            firstKeyPosition = &itr->second;
+            firstKeyPosition = itr->second;
         }
         else
         {
-            lastKeyPosition = &itr->second;
+            lastKeyPosition = itr->second;
             break;
         }
     }
