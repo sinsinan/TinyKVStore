@@ -1,4 +1,8 @@
 *.o
 *.exe
-.vscode/*
+.vscode
 output*
+build
+cmake-build-debug
+a.out
+test.table
