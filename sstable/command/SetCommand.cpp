@@ -16,7 +16,7 @@ std::string SetCommand::getKey() { return this->key; }
 std::string SetCommand::getValue() { return this->value; }
 nlohmann::json SetCommand::toJson()
 {
-    printf("inside toJson of SetCommand\n");
+//    printf("inside toJson of SetCommand\n");
     nlohmann::json j;
 
     j["key"] = this->key;

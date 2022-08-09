@@ -3,29 +3,79 @@
 //
 
 #include<iostream>
+#include <string>
+#include <sstream>
 
 #include "SetCommand.h"
 #include <SSTable.h>
 
-int main() {
-    std::map<std::string, std::shared_ptr<Command> > data;
+#include <LSMKVStore.h>
 
-    data.insert(std::make_pair(std::string("sinan1"), std::make_shared<SetCommand>(SetCommand("sinan1", "ahamed1"))));
-    data.insert(std::make_pair(std::string("sinan5"), std::make_shared<SetCommand>(SetCommand("sinan5", "ahamed5"))));
-    data.insert(std::make_pair(std::string("sinan3"), std::make_shared<SetCommand>(SetCommand("sinan3", "ahamed3"))));
-    data.insert(std::make_pair(std::string("sinan4"), std::make_shared<SetCommand>(SetCommand("sinan4", "ahamed4"))));
-    data.insert(std::make_pair(std::string("sinan2"), std::make_shared<SetCommand>(SetCommand("sinan2", "ahamed2"))));
+void printHelp(){
+    std::cout<<"Tiny Key Value Store -- Help" << std::endl;
+    std::cout<<"kvstore <data-dir> <table-name>"<< std::endl;
+}
 
-    std::string tableFilePath = "/Users/chistadata/Documents/TinyKVStore/test.table";
-    long partSize = 2;
+void printCommandsAvailable() {
+    std::cout<<"commands available"<< std::endl;
+    std::cout<<"set <key> <value>"<< std::endl;
+    std::cout<<"get <key>"<< std::endl;
+    std::cout<<"rm <key>"<< std::endl;
+    std::cout<<"exit"<< std::endl;
+}
 
-    SSTable sstable(tableFilePath, partSize, data);
-    auto sr = sstable.query("sinan3");
+std::vector<std::string> simpleTokenizer(std::string s)
+{
+    std::vector<std::string> commandTokens;
+    std::stringstream ss(s);
+    std::string word;
+    while (ss >> word) {
+        commandTokens.push_back(word);
+    }
+    return commandTokens;
+}
 
-    std::cout<<"sinan3: "<<sr<<std::endl;
 
-    SSTable sstableFromFile(tableFilePath);
-    sr = sstableFromFile.query("sinan5");
-    std::cout<<"sinan5: "<<sr<<std::endl;
+int main(int argc, char **argv) {
+    if(argc != 3) {
+        printHelp();
+        return -1;
+    }
+
+    std::shared_ptr<LSMKVStore> currentStore = nullptr;
+
+    currentStore = std::make_shared<LSMKVStore>(LSMKVStore(std::string(argv[1]), std::string(argv[2])));
+
+    bool exit = false;
+    std::string commandString;
+    std::vector<std::string> commandTokens;
+    while (!exit) {
+        if(currentStore) {
+            std::cout << currentStore->getTableName();
+        }
+        std::cout << " > ";
+        getline(std::cin, commandString);
+
+
+        std::vector<std::string> commandTokens = simpleTokenizer(commandString);
+
+        if (commandTokens.size() > 0) {
+            if(commandTokens[0] == "exit") {
+                exit = true;
+            } else if(commandTokens[0] == "get") {
+                std::cout << /*"key: " << commandTokens[1] <<" , value: " <<*/  currentStore->get(commandTokens[1]) << std::endl;
+            } else if(commandTokens[0] == "rm") {
+                currentStore->rm(commandTokens[1]);
+            } else if(commandTokens[0] == "set") {
+                currentStore->set(commandTokens[1], commandTokens[2]);
+            } else{
+                printCommandsAvailable();
+            }
+        } else {
+            printCommandsAvailable();
+
+        }
+    }
+
     return 0;
 }

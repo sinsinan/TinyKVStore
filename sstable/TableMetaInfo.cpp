@@ -21,7 +21,7 @@ void TableMetaInfo::readFromFile(std::ifstream &file)
     file.read((char *)&this->indexLength, longSize);
     file.read((char *)&this->version, longSize);
 
-    printf("\nthis->partSize: %d\nthis->dataStart: %d\nthis->dataLength: %d\nthis->indexStart: %d\nthis->indexLength: %d\nthis->version: %d\n", this->partSize, this->dataStart, this->dataLength, this->indexStart, this->indexLength, this->version);
+//    printf("\nthis->partSize: %d\nthis->dataStart: %d\nthis->dataLength: %d\nthis->indexStart: %d\nthis->indexLength: %d\nthis->version: %d\n", this->partSize, this->dataStart, this->dataLength, this->indexStart, this->indexLength, this->version);
 }
 void TableMetaInfo::writeToFile(std::ofstream &file)
 {
@@ -32,7 +32,7 @@ void TableMetaInfo::writeToFile(std::ofstream &file)
     file.write((char *)&this->indexStart, longSize);
     file.write((char *)&this->indexLength, longSize);
     file.write((char *)&this->version, longSize);
-    printf("\nthis->partSize: %d\nthis->dataStart: %d\nthis->dataLength: %d\nthis->indexStart: %d\nthis->indexLength: %d\nthis->version: %d\n", this->partSize, this->dataStart, this->dataLength, this->indexStart, this->indexLength, this->version);
+//    printf("\nthis->partSize: %d\nthis->dataStart: %d\nthis->dataLength: %d\nthis->indexStart: %d\nthis->indexLength: %d\nthis->version: %d\n", this->partSize, this->dataStart, this->dataLength, this->indexStart, this->indexLength, this->version);
 }
 
 long TableMetaInfo::getVersion()

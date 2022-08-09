@@ -22,6 +22,13 @@ SSTable::SSTable(std::string sSTableFilePath, long partSize, std::map<std::strin
 
 }
 
+SSTable::SSTable(std::string sSTableFilePath, long partSize)
+{
+    this->filePath = sSTableFilePath;
+    this->tableMetaInfo.setPartSize(partSize);
+    this->openReadAndWriteStreams();
+}
+
 void SSTable::initFromFile()
 {
     this->tableMetaInfo.readFromFile(this->sSTableReadStream);
@@ -31,7 +38,7 @@ void SSTable::initFromFile()
     for (nlohmann::json::iterator it = sparseIndexJson.begin(); it != sparseIndexJson.end(); ++it) {
         this->sparseIndex[it.key()] = {sparseIndexJson[it.key()][0].get<long>(), sparseIndexJson[it.key()][1].get<long>()};
     }
-    std::cout<<"index json: "<<jsonString<<std::endl;
+//    std::cout<<"index json: "<<jsonString<<std::endl;
 }
 
 void SSTable::openReadAndWriteStreams()
@@ -43,20 +50,20 @@ void SSTable::openReadAndWriteStreams()
         std::cout << ("\n!this->sSTableWriteStream failed\n");
         throw "this->sSTableWriteStream failed";
     }
-    std::cout << ("\nopened sSTableWriteStream\n");
+//    std::cout << ("\nopened sSTableWriteStream\n");
     this->sSTableReadStream.open(this->filePath, std::ios_base::binary | std::ios_base::app | std::ios_base::in);
     if (!this->sSTableReadStream)
     {
         std::cout << ("\nthis->sSTableReadStream.open failed\n");
         throw "this->sSTableReadStream.open failed";
     }
-    std::cout << ("\nopened SSTableReadStream\n");
+//    std::cout << ("\nopened SSTableReadStream\n");
 }
 
 void SSTable::initFromData(std::map<std::string, std::shared_ptr<Command> > data)
 {
-    std::cout << ("Loading table from index\n");
-    std::cout << "total data -> %d" << data.size() << std::endl;
+//    std::cout << ("Loading table from index\n");
+//    std::cout << "total data -> %d" << data.size() << std::endl;
     this->tableMetaInfo.setDataStart(this->sSTableWriteStream.tellp());
     long currentPartSize = 0;
     std::list<nlohmann::json> partDataMap;
@@ -104,9 +111,9 @@ void SSTable::writePartData(std::list<nlohmann::json> *partDataMap)
     this->sSTableWriteStream.flush();
 }
 
-std::string SSTable::query(std::string key)
+std::shared_ptr<Command> SSTable::query(std::string key)
 {
-    std::cout << "Starting to query key: " << key.c_str() << std::endl;
+//    std::cout << "Starting to query key: " << key.c_str() << std::endl;
     std::array<long, 2> *firstKeyPosition;
     std::array<long, 2> *lastKeyPosition;
 
@@ -128,14 +135,14 @@ std::string SSTable::query(std::string key)
         nlohmann::json j = nlohmann::json::parse(s);
 
         for (nlohmann::json::iterator it = j.begin(); it != j.end(); ++it) {
-            std::cout <<" : " << it.value() << "\n";
+//            std::cout <<" : " << it.value() << "\n";
             auto command = convertToCommand(it.value());
             dataMap.insert(std::make_pair(command->getKey(), command));
         }
         auto dataCount = dataMap.count(key);
         if (dataCount > 0)
         {
-            return dataMap[key]->getValue();
+            return dataMap[key];
         }
     }
 
@@ -146,18 +153,18 @@ std::string SSTable::query(std::string key)
         nlohmann::json j = nlohmann::json::parse(s);
 
         for (nlohmann::json::iterator it = j.begin(); it != j.end(); ++it) {
-            std::cout <<" : " << it.value() << "\n";
+//            std::cout <<" : " << it.value() << "\n";
             auto command = convertToCommand(it.value());
             dataMap.insert(std::make_pair(command->getKey(), command));
         }
         auto dataCount = dataMap.count(key);
         if (dataCount > 0)
         {
-            return dataMap[key]->getValue();
+            return dataMap[key];
         }
     }
 
-    return "";
+    return nullptr;
 }
 
 std::string SSTable::bufferedReader(long seekOffset, long byteSize)

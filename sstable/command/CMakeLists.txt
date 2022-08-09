@@ -1,4 +1,4 @@
-add_library(Command SetCommand.cpp RmCommand.cpp)
+add_library(Command SetCommand.cpp RmCommand.cpp CommandUtil.cpp)
 
 # add the binary tree to the search path for include files
 # so that we will find TutorialConfig.h

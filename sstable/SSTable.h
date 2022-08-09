@@ -28,7 +28,8 @@ private:
 public:
     SSTable(std::string sSTableFilePath);
     SSTable(std::string sSTableFilePath, long partSize, std::map<std::string, std::shared_ptr<Command> > data);
-    std::string query(std::string key);
+    SSTable(std::string sSTableFilePath, long partSize);
+    std::shared_ptr<Command> query(std::string key);
 };
 
 

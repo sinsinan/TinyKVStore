@@ -14,7 +14,7 @@ this->key = j["key"].get<std::string>();
 std::string RmCommand::getKey() { return this->key; }
 nlohmann::json RmCommand::toJson()
 {
-    printf("inside toJson of RmCommand\n");
+//    printf("inside toJson of RmCommand\n");
     nlohmann::json j;
 
     j["key"] = this->key;

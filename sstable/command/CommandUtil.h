@@ -8,14 +8,6 @@
 #include "SetCommand.h"
 #include "RmCommand.h"
 
-std::shared_ptr<Command>  convertToCommand(nlohmann::json j){
-    switch (j["commandType"].get<int>())
-    {
-        case SET:
-            return std::make_shared<SetCommand>(SetCommand(j));
-        default:
-            return std::make_shared<RmCommand>(RmCommand(j));
-    }
-}
+std::shared_ptr<Command>  convertToCommand(nlohmann::json j);
 
 #endif //TINYKVSTORE_COMMANDUTIL_H
